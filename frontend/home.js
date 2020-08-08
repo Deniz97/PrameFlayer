@@ -1,5 +1,5 @@
 const FRAME_PER_IMAGE = 25 // bad/good practice?
-
+const FPS = 10
 
 
 /*
@@ -29,6 +29,8 @@ class FramePlayer {
         this.frame_index = 0
         this.progress=0 // 0-100, current progress of the progress bar
         //this.last_loaded_frame_index = 0
+
+        document.getElementById('myBar').addEventListener('click', this.set_position) //todo change id
 
         this.getVideoUrls().then(urls => {
             let frame_count = urls.length * FRAME_PER_IMAGE;
@@ -182,35 +184,48 @@ class FramePlayer {
     }
 
     move_progress() {
-        if(this.progress==100){
+        if(this.progress>=100){
             return;
         }
-        else{
-            this.progress+=1;
-        }
-        var elem = document.getElementById("myBar");
+
+        let elem = document.getElementById("myBar");
+        let width = 0;
+        let raise_by = 100/this.frames.length
+        this.progress+=raise_by;
         let progress = this.progress;
-        var width = 0;
-        var id = setInterval(frame, 10);
+        let id = setInterval(frame, 10); //TODO make this with FPS
         function frame() {
-            if (width >= 1) {
+            if (width >= raise_by) {
                 clearInterval(id);
             } else {
-                width+=0.1;
+                width+=raise_by/10; //TODO make this with FPS
                 elem.style.width = progress+width + "%";
-                elem.innerHTML = progress  + "%";
+                elem.innerHTML = Math.round(progress)  + "%";
             }
         }
+
+    }
+
+    set_position = e => {
+        let rect = e.target.getBoundingClientRect();
+
+        let x = ((e.clientX - rect.left)/(e.target.parentElement.getBoundingClientRect().width) )*100;
+        //var y = e.clientY - rect.top;
+        this.progress = Math.max(Math.floor(x)-1,0); //cosmetic buffer
+        this.frame_index = Math.floor(this.frames.length*this.progress/100);
+        let a = 32*43;
 
     }
 
 
 
 }
+
 let img_frame = undefined;
 document.addEventListener("DOMContentLoaded", function () {
 
     img_frame = new FramePlayer("frameImg", 1)
+
 
 });
 

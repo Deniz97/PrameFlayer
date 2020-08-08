@@ -1,15 +1,17 @@
 //dependencies
 //const sharp = require('sharp');
-const imageToSlices = require('image-to-slices');
+//const imageToSlices = require('image-to-slices');
+/*
 imageToSlices.configure({
     clipperOptions: {
         canvas: require('canvas')
     }
 });
-const path = require('path');
-const fs = require('fs');
+ */
+//const path = require('path');
+//const fs = require('fs');
 const express = require('express');
-const cors = require('cors');
+//const cors = require('cors');
 const app = express();
 
 
@@ -17,7 +19,7 @@ const app = express();
 
 
 const host_adress = "http://localhost:8081"
-const videos_root = "./static/images/"
+//const videos_root = "./static/images/"
 //static files, css, js, html
 // TODO best practice for js css html node/backend file structure
 // BTW, how to serve images: https://stackoverflow.com/questions/5823722/how-to-serve-an-image-using-nodejs
