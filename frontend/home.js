@@ -1,9 +1,6 @@
 const FRAME_PER_IMAGE = 25 // bad/good practice?
 
-function range(n) {
-    //alternatives (yes the link is weird and works) https://2ality.com/2018/12/creating-arrays.html#:~:text=One%20common%20way%20of%20creating,equal(arr.
-    return Array.from({length: n}, (x, i) => i)
-}
+
 
 /*
 //should this get the urls by itself, or supplied trough .set_images(images)
@@ -30,6 +27,7 @@ class FramePlayer {
         this._triggers = {}; // string eventname -> [func] callbacks
         this.frames = [] //init with undefined?
         this.frame_index = 0
+        //this.last_loaded_frame_index = 0
 
         this.getVideoUrls().then(urls => {
             let frame_count = urls.length * FRAME_PER_IMAGE;
@@ -38,16 +36,20 @@ class FramePlayer {
 
             //init the interval
             this.frame_index = 0
-            setInterval(this.interval_method.bind(this), 3000);
+            // TODO do this here and lazy load setInterval(this.interval_method.bind(this), 3000);
 
             //start getting frames
             //for(let i=0;i<urls.length;i++){
             for (let i of range(urls.length)) {
                 //wait every n frame? //later, wait when open requests > n
                 this.getBase64Async(urls[i]).then(img_base64 => {
+                    console.log("fetching image "+i.toString())
                     this.frames_from_image(img_base64);
                 })
             }
+
+            setInterval(this.interval_method.bind(this), 100);
+
         })
     }
 
@@ -59,6 +61,10 @@ class FramePlayer {
 
     //accesing this., 3 ways, https://stackoverflow.com/questions/2001920/calling-a-class-prototype-method-by-a-setinterval-event
     interval_method() {
+        console.log("framing interval method: ")
+        console.log(this.frame_index)
+        console.log(this.frames)
+        console.log(this.frames[this.frame_index])
         this.set_frame(this.frames[this.frame_index])
         this.frame_index = this.frame_index + 1
     }
@@ -68,9 +74,9 @@ class FramePlayer {
         // for better readability image is created here everytime
         // if performance matters just put it out there above
         let image = new Image()
+        image.onload = this.cutImageUp(image, this.frames) //returns a function with no arguments
         image.src = image_data_base64
         //crop images into 25 smaller ones
-        return this.cutImageUp(image);
     }
 
 
@@ -83,30 +89,36 @@ class FramePlayer {
         this.is_playing = false
     }
 
-    cutImageUp(image) {// returns [ base64 ]
 
-        for (let y = 0; y < 5; ++y) {
-            for (let x = 0; x < 5; ++x) {
-                let canvas = document.createElement("canvas");
-                canvas.width = 128;
-                canvas.height = 72;
-                let context = canvas.getContext("2d");
-                context.drawImage(
-                    image,
-                    x * 128,
-                    y * 72,
-                    128,
-                    72,
-                    0,
-                    0,
-                    canvas.width,
-                    canvas.height
-                );
-                let toadd=canvas.toDataURL();
-                this.frames.push(toadd);
+    cutImageUp(image, frames) {// returns [ base64 ]
+        return function () {
+            console.log("image source: "+image.src)
+            for (let y = 0; y < 5; ++y) {
+                for (let x = 0; x < 5; ++x) {
+                    let canvas = document.createElement("canvas");
+                    canvas.width = 128;
+                    canvas.height = 72;
+                    let context = canvas.getContext("2d");
+                    context.drawImage(
+                        image,
+                        x * 128,
+                        y * 72,
+                        128,
+                        72,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height
+                    );
+                    //here we will the frames array
+                    let toadd=canvas.toDataURL();
+                    console.log("toadd: "+toadd)
+                    frames.push(toadd);
+                }
             }
+            let anImageElement = document.getElementById("frames");
         }
-        let anImageElement = document.getElementById("frames");
+
     }
 
     //weird enough, i didnt find a "default implementation" of this.
@@ -154,7 +166,7 @@ class FramePlayer {
     }
 
     set_frame(img_base64) {
-        console.log("framing: ", img_base64)
+        console.log("framing set frame: ", img_base64)
         document.getElementById('frameImg')
             .setAttribute(
                 'src', img_base64
