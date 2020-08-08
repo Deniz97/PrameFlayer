@@ -9,10 +9,15 @@
         <link rel="stylesheet" type="text/css" href="home.css">
 
         <h1>Alyo Video Player Test</h1>
+        This is my Gravatar picture: <codingdude-gravatar email="admin@coding-dude.com" />
         <p>Deniz Rasim Uluğ</p>
         <!-- I sometimes "missname" ids, for example not doing below's id "framePlayer", so that the developer will know that this does not need to match that. Afterall, django do take string keywords place to place-->
-        <img id="frameImg" src="" alt="The Pulpitdasfas Rock" width="304" height="228"/>
+        <img id="frameImg" src="" alt="The Pulpitdasfas Rock" width="304" height="228"  onclick="OnClickFrameArea(this.id)"/>
+        <!-- <img src="https://i.imgur.com/7KpCS0Y.jpg" onclick="window.open(this.src)"> Nice usage-->
         <img id="anan" src="">
-        <button onclick="myFunction()">Try it</button>
+        <button onclick="OnClickFrameArea()">Try it</button>
+        <div id="myProgress">
+            <div id="myBar">0%</div>
+        </div>
     </body>
 </html>

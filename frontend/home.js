@@ -27,6 +27,7 @@ class FramePlayer {
         this._triggers = {}; // string eventname -> [func] callbacks
         this.frames = [] //init with undefined?
         this.frame_index = 0
+        this.progress=0 // 0-100, current progress of the progress bar
         //this.last_loaded_frame_index = 0
 
         this.getVideoUrls().then(urls => {
@@ -61,12 +62,16 @@ class FramePlayer {
 
     //accesing this., 3 ways, https://stackoverflow.com/questions/2001920/calling-a-class-prototype-method-by-a-setinterval-event
     interval_method() {
+        if(!this.is_playing){
+            return;
+        }
         console.log("framing interval method: ")
         console.log(this.frame_index)
-        console.log(this.frames)
-        console.log(this.frames[this.frame_index])
+        //console.log(this.frames)
+        //console.log(this.frames[this.frame_index])
         this.set_frame(this.frames[this.frame_index])
         this.frame_index = this.frame_index + 1
+        this.move_progress()
     }
 
     frames_from_image(image_data_base64) { // returns [ base64 ]
@@ -82,17 +87,20 @@ class FramePlayer {
 
     play() {
         this.is_playing = true
-
     }
 
     pause() {
         this.is_playing = false
     }
 
+    playpause(){
+        this.is_playing = !this.is_playing;
+    }
+
 
     cutImageUp(image, frames) {// returns [ base64 ]
         return function () {
-            console.log("image source: "+image.src)
+            //console.log("image source: "+image.src)
             for (let y = 0; y < 5; ++y) {
                 for (let x = 0; x < 5; ++x) {
                     let canvas = document.createElement("canvas");
@@ -112,7 +120,7 @@ class FramePlayer {
                     );
                     //here we will the frames array
                     let toadd=canvas.toDataURL();
-                    console.log("toadd: "+toadd)
+                    //console.log("toadd: "+toadd)
                     frames.push(toadd);
                 }
             }
@@ -166,21 +174,49 @@ class FramePlayer {
     }
 
     set_frame(img_base64) {
-        console.log("framing set frame: ", img_base64)
+        //("framing set frame: ", img_base64)
         document.getElementById('frameImg')
             .setAttribute(
                 'src', img_base64
             );
     }
 
+    move_progress() {
+        if(this.progress==100){
+            return;
+        }
+        else{
+            this.progress+=1;
+        }
+        var elem = document.getElementById("myBar");
+        let progress = this.progress;
+        var width = 0;
+        var id = setInterval(frame, 10);
+        function frame() {
+            if (width >= 1) {
+                clearInterval(id);
+            } else {
+                width+=0.1;
+                elem.style.width = progress+width + "%";
+                elem.innerHTML = progress  + "%";
+            }
+        }
+
+    }
+
+
 
 }
-
+let img_frame = undefined;
 document.addEventListener("DOMContentLoaded", function () {
 
-    let img_frame = new FramePlayer("frameImg", 1)
+    img_frame = new FramePlayer("frameImg", 1)
 
 });
 
+function OnClickFrameArea(arg) {
+    console.log(arg)
+    img_frame.playpause()
+}
 
 
