@@ -13,7 +13,7 @@ class FramePlayer {
     //TODO refactor frameloading, progressbar and state functionalities out (to sub classes?)
     constructor(html_id, video_id = 1) {
         /*
-        // if this type of private var is good idea
+        // is this type of private var good idea, too cluttered.
         var _name = name
         this.setName = function(name) { _name = name; }
         this.getName = function() { return _name; }
@@ -24,18 +24,16 @@ class FramePlayer {
         this.html_id = html_id
         this.video_id = video_id
         this.video_state = VideoStateEnum.INIT
-        this.img_element = document.getElementById(this.html_id);
         this._triggers = {}; // string eventname -> [func] callbacks
         this.frames = [] //init with undefined?
-        this.frame_index = 0
+        this.frame_index = 0 //index of the current frame
         this.progress=0 // 0-100, current progress of the progress bar
         //this.last_loaded_frame_index = 0
 
         document.getElementById('myProgress').addEventListener('click', this.set_position) //todo change id
 
         this.getVideoUrls().then(urls => {
-            let frame_count = urls.length * FRAME_PER_IMAGE;
-            //this.frames = new Array(frame_count)//init the array,
+            //this.frames = new Array(urls.length * FRAME_PER_IMAGE)//init the array, for when we do lazy loading
             this.frames=[]
 
             //init the interval
@@ -43,12 +41,13 @@ class FramePlayer {
             // TODO do this here and lazy load setInterval(this.interval_method.bind(this), 3000);
 
             //start getting frames
-            //for(let i=0;i<urls.length;i++){
+            //TODO right now it is a coincidence that images come in order, fix this
             for (let i of range(urls.length)) {
                 //wait every n frame? //later, wait when open requests > n
                 this.getBase64Async(urls[i]).then(img_base64 => {
                     console.log("fetching image "+i.toString())
                     this.frames_from_image(img_base64);
+
 
                 })
             }
@@ -56,27 +55,20 @@ class FramePlayer {
             //TODO FrameLoader().then(setframe; setinterval; fireevent;)
             //this.set_frame(this.frames[0])
             this.triggerHandler(VideoEventsEnum.DOWNLADED);
-            setInterval(this.interval_method.bind(this), 100);
+            // how to make class method use this when used for set interval https://stackoverflow.com/questions/2001920/calling-a-class-prototype-method-by-a-setinterval-event
+            setInterval(this.interval_method.bind(this), 1000/FPS);
 
         })
     }
 
-    /*
-    change_video_id(video_id){
-        this.video_id = video_id
-    }
-    */
 
-    //accesing this., 3 ways, https://stackoverflow.com/questions/2001920/calling-a-class-prototype-method-by-a-setinterval-event
+
+
     interval_method() {
         if(this.video_state !== VideoStateEnum.PLAYING ){
             return;
         }
 
-        //console.log("framing interval method: ")
-        //console.log(this.frame_index)
-        //console.log(this.frames)
-        //console.log(this.frames[this.frame_index])
         this.set_frame(this.frames[this.frame_index])
         this.frame_index = this.frame_index + 1
         this.move_progress()
@@ -84,92 +76,17 @@ class FramePlayer {
             //TODO refactor moveout to this.end_video()
             this.video_state = VideoStateEnum.END;
             this.triggerHandler(VideoEventsEnum.END);
+            this.show_icon("replayIcon", false, false, true) // TODO register this as an eventhandler on end event
             return;
         }
     }
 
-    frames_from_image(image_data_base64) { // returns [ base64 ]
-        //base64 to image
-        // for better readability image is created here everytime
-        // if performance matters just put it out there above
-        let image = new Image()
-        image.onload = this.cutImageUp(image, this.frames, this.video_state, this.set_frame, this) //returns a function with no arguments //yeah bad shit, TODO
-        image.src = image_data_base64
-        //crop images into 25 smaller ones
-    }
-
-    changestate(new_state){
-        // TODO assert new_state is of type VideoStateEnum
-    }
-
-    play() { //private
-        this.video_state = VideoStateEnum.PLAYING
-        this.triggerHandler(VideoEventsEnum.PLAY);
-    }
-
-    pause() { //private
-        this.video_state = VideoStateEnum.PAUSE
-        this.triggerHandler(VideoEventsEnum.PAUSE);
-    }
-
-    show_icon(icon_id){
-
-    }
-
-    playpause(){ //public
-        if(this.video_state == VideoStateEnum.PLAYING) {
-            this.pause();
-        }
-        else if(this.video_state == VideoStateEnum.PAUSE || this.video_state == VideoStateEnum.STARTING){
-            this.play();
-        }
-        else if(this.video_state==VideoStateEnum.END){
-            this.progress = 0;
-            this.frame_index=0;
-            this.play()
-        }
-
-    }
 
 
-    cutImageUp(image, frames, video_state, set_frame_fnc, thiss) {// returns [ base64 ]
-        return function () {
-            //console.log("image source: "+image.src)
-            for (let y = 0; y < 5; ++y) {
-                for (let x = 0; x < 5; ++x) {
-                    let canvas = document.createElement("canvas");
-                    canvas.width = 128;
-                    canvas.height = 72;
-                    let context = canvas.getContext("2d");
-                    context.drawImage(
-                        image,
-                        x * 128,
-                        y * 72,
-                        128,
-                        72,
-                        0,
-                        0,
-                        canvas.width,
-                        canvas.height
-                    );
-                    //here we will the frames array
-                    let toadd=canvas.toDataURL();
-                    //console.log("toadd: "+toadd)
-                    frames.push(toadd);
-                }
-            }
-            //weird way to do this, TODO, do this in the constructor or something
-            if(video_state == VideoStateEnum.INIT){
-                thiss.video_state = VideoStateEnum.STARTING;
-                set_frame_fnc(frames[0]);
-            }
-            //
-            let anImageElement = document.getElementById("frames");
-        }
-
-    }
-
-    //weird enough, i didnt find a "default implementation" of this.
+    /*
+    EVENT RELATED METHODS
+    weird enough, i didnt find a "default implementation" of this.
+     */
     on(event, callback) {
         if (!this._triggers[event])
             this._triggers[event] = [];
@@ -187,6 +104,108 @@ class FramePlayer {
         }
     }
 
+    /*
+    STATE RELATED
+     */
+    play() { //private
+        this.video_state = VideoStateEnum.PLAYING
+        this.triggerHandler(VideoEventsEnum.PLAY);
+        this.show_icon("playIcon", true) // TODO register this as an eventhandler on end event
+    }
+
+    pause() { //private
+        this.video_state = VideoStateEnum.PAUSE
+        this.triggerHandler(VideoEventsEnum.PAUSE);
+        this.show_icon("pauseIcon", true) // TODO register this as an eventhandler on end event
+    }
+
+    show_icon(icon_id, animate_opacity=false, animate_size=false, hang=false){
+        let icon_ids = ["playIcon", "pauseIcon", "replayIcon"];
+        //delete from array
+        const index = icon_ids.indexOf(icon_id);
+        if (index > -1) {
+            icon_ids.splice(index, 1);
+        }
+        else{
+            throw "Not a known icon id"
+        }
+        // enable the icon to show
+        let icon_element_to_show = document.getElementById(icon_id);
+        icon_element_to_show.style.display = "block"
+        //shut down other icons
+        for(let current_icon_id of icon_ids){
+            document.getElementById(current_icon_id).style.display = "none";
+        }
+        //
+        let interval_id;
+        if(animate_opacity || animate_size){
+            let interval_counter = 0
+            let current_opacity = 1;
+            let current_size = 1;
+            interval_id = setInterval(animate_interval, 10);
+            function animate_interval() {
+                if(interval_counter*10>=800){
+                    clearInterval(interval_id)
+                }
+                interval_counter+=1;
+                if(animate_opacity){
+                    //TODO make this nonlinear? (slower or faster at the start)
+                    //set and dec opacity
+                    icon_element_to_show.style.opacity = current_opacity;
+                    current_opacity = Math.max(current_opacity - 1/80, 0) // max is just in case
+                }
+                if(animate_size){
+                    // TODO not yet implemented
+                    throw "size animation not yet implemented";
+                    //set and inc size
+                }
+
+            }
+        }
+
+
+        if(!hang){
+            setTimeout(() => {
+                icon_element_to_show.style.display = "none"
+                if(animate_opacity || animate_size){
+                    clearInterval(interval_id)
+                }
+            }, 800);
+        }
+
+
+
+
+
+
+    }
+
+    playpause(){ //public
+        if(this.video_state === VideoStateEnum.PLAYING) {
+            this.pause();
+        }
+        else if(this.video_state === VideoStateEnum.PAUSE || this.video_state === VideoStateEnum.STARTING){
+            this.play();
+        }
+        else if(this.video_state === VideoStateEnum.END){
+            this.progress = 0;
+            this.frame_index=0;
+            this.play()
+        }
+
+    }
+
+    /*
+    changestate(new_state){
+        // TODO assert new_state is of type VideoStateEnum
+    }
+     */
+
+
+
+    /*
+    PROGRESS BAR RELATED
+     */
     getVideoUrls() {
         let url = "http://localhost:8081/videos/urls/" + this.video_id + "/";
 
@@ -197,32 +216,6 @@ class FramePlayer {
 
             }).catch(error => error)
     }
-
-     _imageEncode (arrayBuffer) {
-        let u8 = new Uint8Array(arrayBuffer)
-        let b64encoded = btoa([].reduce.call(new Uint8Array(arrayBuffer),function(p,c){return p+String.fromCharCode(c)},''))
-        let mimetype="image/jpeg"
-        return "data:"+mimetype+";base64,"+b64encoded
-    }
-
-    getBase64Async(url) {
-        return axios
-            .get(url, {
-                responseType: 'arraybuffer'
-            })
-            //.then(response => Buffer.from(response.data, 'binary').toString('base64')) //for nodejs
-            .then(response => this._imageEncode(response.data)) //should be Buffer.from for nodejs>6
-    } //TODO bad naming, fix convention
-
-    set_frame(img_base64) {
-        //("framing set frame: ", img_base64)
-        document.getElementById('frameImg')
-            .setAttribute(
-                'src', img_base64
-            );
-    }
-
-
     set_bar_position(progress, width){
         let elem = document.getElementById("myBar");
         elem.style.width = width + "%";
@@ -278,7 +271,88 @@ class FramePlayer {
 
     }
 
+    /*
+    FRAME LOADING RELATED
+     */
+    _imageEncode (arrayBuffer) {
+        let u8 = new Uint8Array(arrayBuffer)
+        let b64encoded = btoa([].reduce.call(new Uint8Array(arrayBuffer),function(p,c){return p+String.fromCharCode(c)},''))
+        let mimetype="image/jpeg"
+        return "data:"+mimetype+";base64,"+b64encoded
+    }
 
+    cutImageUp(image, thiss) {// returns [ base64 ]
+        return function () {
+            //console.log("image source: "+image.src)
+            for (let y = 0; y < 5; ++y) {
+                for (let x = 0; x < 5; ++x) {
+                    let canvas = document.createElement("canvas");
+                    canvas.width = 128;
+                    canvas.height = 72;
+                    let context = canvas.getContext("2d");
+                    context.drawImage(
+                        image,
+                        x * 128,
+                        y * 72,
+                        128,
+                        72,
+                        0,
+                        0,
+                        canvas.width,
+                        canvas.height
+                    );
+                    //here we will the frames array
+                    let toadd=canvas.toDataURL();
+                    //console.log("toadd: "+toadd)
+                    thiss.frames.push(toadd);
+                }
+            }
+            //weird way to do this, TODO, do this in the constructor or something
+            if(thiss.video_state === VideoStateEnum.INIT){
+                thiss.video_state = VideoStateEnum.STARTING;
+                thiss.set_frame(thiss.frames[0], thiss.html_id);
+            }
+            //
+
+        }
+
+    }
+
+    getBase64Async(url) {
+        return axios
+            .get(url, {
+                responseType: 'arraybuffer'
+            })
+            //.then(response => Buffer.from(response.data, 'binary').toString('base64')) //for nodejs
+            .then(response => this._imageEncode(response.data)) //should be Buffer.from for nodejs>6
+    } //TODO bad naming, fix convention
+
+    frames_from_image(image_data_base64) { // returns [ base64 ]
+        //base64 to image
+        // for better readability image is created here everytime
+        // if performance matters just put it out there above
+        let image = new Image()
+        image.onload = this.cutImageUp(image, this) //returns a function with no arguments //yeah bad shit, TODO
+        image.src = image_data_base64
+        //crop images into 25 smaller ones
+    }
+
+    /*
+    MISC METHODS
+     */
+
+    set_frame(img_base64) {
+        document.getElementById(this.html_id)
+            .setAttribute(
+                'src', img_base64
+            );
+    }
+
+    /*
+    change_video_id(video_id){
+        this.video_id = video_id
+    }
+    */
 
 }
 

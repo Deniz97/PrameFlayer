@@ -43,7 +43,7 @@ app.use(function(req, res, next) {
 //example usage for post, just in case
 //let response_json = req.json()
 // let video_id = response_json["video_id"]; // .video_id or ["video_id"] ?
-app.get('/videos/urls/:video_id', function (req, res) { // TODO better url name?
+app.get('/videos/urls/:video_id', function (req, res) {
     let video_id = req.params.video_id
     let fs = require('fs');
     let file_urls = fs.readdirSync('./static/images/' + video_id.toString() + '/').sort()
